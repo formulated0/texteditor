@@ -1,4 +1,4 @@
-from textual.widgets import Static
+from textual.widgets import Static, Tabs
 
 class Tabbar(Static):
     def __init__(self) -> None:

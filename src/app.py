@@ -1,11 +1,11 @@
 from textual.app import App, ComposeResult
 from textual.widgets import Footer
 from textual.containers import Container
-from .widgets import Sidebar, Editorpane, Tabbar
+from .widgets import Sidebar, Editorpane, Tabbar, Statusbar
 
 
 class tedit(App):
-    BINDINGS = [("q", "quit", "Quit")]
+    BINDINGS = [("q", "quit", "quit")]
     CSS_PATH = "../style.tcss"
     
     def compose(self) -> ComposeResult:
@@ -15,5 +15,6 @@ class tedit(App):
             Editorpane(),
             classes="right-panel"
         )
-        yield Footer()
+        yield Statusbar()
+        # yield Footer() # conflicts with statusbar right now
 
