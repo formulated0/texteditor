@@ -1,0 +1,524 @@
+# YOU SAID:
+
+project idea backstory: i am in y11, taking software engineering and enterprise computing as two of my senior electives in high school. i want to start a passion project. i use vscode. i like its ux. however, I really like neovims style and ui. its super clean minimal and just overall satisfying to look at. however, i absolutely despise the ux of nvim. i keep giving it chances to redeem itself - i approach it after a few months again with a fresh and open mind, and it again and again shoots me down. i want to make a code editor that is a mix of nvim and vsc. i have attached a screenshot of one of my favorite nvim configurations - nvchad. aside from the split window (we can implement later if necessary), this is exactly what the user will see in my idea. this is exactly what i mean - neovim, but without the dumb modes and keyboard centric ux, so its neovim but with vscode ux. all keybinds will be the same as vsc (as im used to it), just applied onto something that looks very very similar to nvim. this will be a terminal application (like neovim) because ive found thats the best way to replicate the aesthetic rather than making it standalone. this application will be not keyboard centric - the user will be able to operate most things with the mouse (right click context menus, etc.). there will be full keyboard support however. due to the simplistic ui, there will be a command palette (like neovims command mode, except designed like vscodes palette - popup on top of screen with keybind ctrl-shift-p or ctrl-space) that lets you execute commands like nvim/vsc i know a bit of python - doubtful itll be enough to make this project, but i want to learn. this is a passion project. i want to make this initially in python, and then - when i go to uni, im going to take a comsci course (likely at usyd/unsw) which I think teaches C as part of the course, so if im decent at C by then, and i still have interest in this, i will rewrite it in C for performance can you first before we do anything: make me a very very very detailed plan based on the very simple outline i gave here. everything will be mentioned here. every single aspect of the application. like seriously everything should be extremeley detailed - i need to be able to understand every part of my extended plan. this application should work on both linux and windows development will primarily be on arch linux (as that is my home pc), however to work on it remotely (via dropbox) i will be on a windows laptop don't come up with a name just yet just focus on the actual design
+
+
+# CHATGPT SAID:
+
+High level
+
+Product goals
+	•	Neovim look, VS Code UX.
+	•	Terminal TUI with full mouse support and full keyboard support.
+	•	VS Code keybinds mapped as closely as terminals allow.
+	•	Command Palette that behaves like VS Code’s.
+	•	Fast enough to feel snappy on large files.
+	•	Runs on Arch Linux and Windows Terminal, PowerShell, and common Linux terminals.
+	•	No telemetry by default. Opt-in crash reporting only.
+
+Non-goals for v1
+	•	No split panes in the first public alpha.
+	•	No heavy language features beyond basic LSP completion and diagnostics.
+	•	No plugin marketplace yet.
+
+⸻
+
+User experience specification
+
+Visual layout
+	•	Top tab strip: simple tabs with file names and dirty dot.
+	•	Optional left sidebar: file explorer toggleable with Ctrl+B. Hidden by default in v1 to keep the minimal Neovim vibe.
+	•	Editor area: line numbers, relative numbers toggle, soft wrap toggle, indent guides, current line highlight.
+	•	Bottom status bar: left to right
+	•	Mode indicator always shows “INS” or “SEL” for clarity, never modal like Vim.
+	•	Git branch and dirty state.
+	•	LSP status and diag counts.
+	•	Encoding, EOL, indent size and type, file type icon, cursor line:col.
+	•	Battery and time optional.
+	•	Command Palette: centred overlay near top, single line input with fuzzy match list below. Dismiss with Esc.
+	•	Context menus: right click opens context menu in editor, explorer, and tab strip.
+
+Interaction rules
+	•	Everything can be done by mouse. Right click gives actions relevant to the context.
+	•	Selection works like VS Code:
+	•	Click to place cursor, drag to select.
+	•	Double click selects word, triple click selects line.
+	•	Ctrl click adds cursor. Alt drag rectangular selection where terminal permits.
+	•	Multi-cursor editing supported for simple cases first.
+	•	Undo and redo on Ctrl+Z and Ctrl+Y or Ctrl+Shift+Z.
+	•	Search on Ctrl+F, replace on Ctrl+H, find next F3, previous Shift+F3.
+	•	Quick Open on Ctrl+P.
+	•	Command Palette on Ctrl+Shift+P, also Ctrl+Space as alternative.
+	•	Format document on Shift+Alt+F when a formatter is configured for the language.
+	•	Toggle sidebar Ctrl+B, toggle line wrap Alt+Z, toggle minimap not implemented for TUI.
+
+⸻
+
+Technology choices
+
+Core TUI
+	•	Textual for the terminal UI framework.
+	•	Reasons: solid layout engine, mouse support, popups, scroll views, async friendly, CSS-like styling, good test hooks, cross platform on Windows and Linux.
+	•	Alternative was curses or urwid, but Windows support and rich styling are painful there.
+
+Rendering and colour
+	•	Rich via Textual for 24-bit colour, box drawing, and styled text.
+	•	Detect true colour support, fall back to 256 colours when needed.
+
+Syntax highlighting
+	•	Stage 1: Pygments for immediate coverage.
+	•	Stage 2: Tree-sitter for incremental, language aware highlighting.
+	•	Use tree_sitter_languages and the highlighter queries.
+	•	Keep both paths behind a feature flag.
+
+Editing engine
+	•	Text buffer uses a piece table data structure with a change journal for undo.
+	•	Good locality on inserts and deletes.
+	•	File contents stored as original buffer plus append-only piece table.
+
+Search and fuzzy
+	•	rapidfuzz for Command Palette and Quick Open scoring.
+	•	In-file search uses Python’s regex with incremental scanning.
+	•	Project search:
+	•	Preferred: call rg if present.
+	•	Fallback: Python walker with .gitignore aware filtering.
+
+LSP
+	•	Minimal LSP client implemented in Python using stdio transport.
+	•	Use lsprotocol types to help with message shapes.
+	•	Workspace config provides per language server commands, args, and root pattern.
+	•	Manage one client per language per workspace.
+	•	Features for v1: initialise, open/close, didChange, diagnostics, hover, completion.
+
+File system and encoding
+	•	watchdog for file change notifications.
+	•	charset-normalizer for encoding detection.
+	•	EOL handling for LF, CRLF.
+	•	Atomic saves with temp file then rename.
+
+Clipboard
+	•	pyperclip with graceful fallbacks.
+	•	On Wayland prefer wl-clipboard if installed.
+	•	On X11 prefer xclip or xsel if present.
+	•	On Windows uses native API.
+
+Git
+	•	Use the git CLI for speed and consistency. Optionally use GitPython later.
+	•	Show branch, staged or dirty state, gutter markers for changes.
+
+Config and theming
+	•	TOML for settings.
+	•	Textual CSS for theme tokens.
+	•	User theming via a single config file in $XDG_CONFIG_HOME/<app>/settings.toml and Windows %APPDATA%\<app>\settings.toml.
+
+Packaging
+	•	Publish as a Python package.
+	•	Recommend install via pipx.
+	•	Provide PyInstaller bundles for Windows and Linux later.
+
+⸻
+
+Architecture
+
+/editor
+  /core
+    buffer.py            # piece table, selections, cursors
+    rope.py              # optional if you try rope later
+    history.py           # undo/redo stack
+    fileio.py            # encoding, eol, atomic save, reload
+    search.py            # regex search, highlighting of matches
+    keymap.py            # VS Code mapping and chords
+    commands.py          # registry of commands
+    events.py            # app events bus (PubSub)
+    workspace.py         # root folder, file index, ripgrep integration
+    lsp_client.py        # jsonrpc, transport, capabilities
+    diagnostics.py       # collect and route diag info
+  /ui
+    app.py               # Textual App subclass
+    views.py             # EditorView, TabBar, StatusBar, Sidebar
+    palette.py           # Command Palette widget
+    prompts.py           # modal prompts, input boxes
+    context_menu.py      # popup menus for editor, explorer, tabs
+    explorer.py          # file tree widget
+    panels.py            # search panel, problems panel
+    theme/               # Textual CSS and default theme tokens
+  /lang
+    syntax_pygments.py   # Pygments based highlighter
+    syntax_ts.py         # Tree-sitter highlighter adapter
+    formatters.py        # run formatter commands
+  /platform
+    clipboard.py
+    fswatch.py
+    paths.py
+  /tests
+    ...
+  settings_schema.py     # pydantic models for settings.toml
+  main.py                # entry point
+
+Core abstractions
+	•	EditorApp: owns global state, command registry, keymap, theme manager, and the main layout.
+	•	Workspace: represents a project root, maintains file index, .gitignore rules, and LSP clients per language.
+	•	Buffer: in-memory representation of one open file with piece table, newline map, and metadata.
+	•	EditorView: visual viewport on a Buffer, handles rendering, cursor drawing, selection painting, scroll.
+	•	CommandRegistry: string id to callable with argument schema and help text. Used by Command Palette and keybindings.
+	•	Keymap: mapping of keystroke sequences to command ids and fixed args. Supports simple chords like Ctrl+K Ctrl+C where terminals allow.
+	•	LSPClient: manages JSON-RPC over stdio, request ids, pending futures, and throttled didChange notifications.
+	•	DiagnosticsStore: central store with per file diagnostics and aggregate counts.
+
+⸻
+
+Detailed feature design
+
+1) Editing model
+
+Piece table structure
+	•	Two byte arrays: original and add.
+	•	Table of pieces: each piece points to one of the arrays with start and length.
+	•	Cursor position uses a logical offset. Map offset to piece index and inner offset by walking piece lengths with a small cached index every N lines for speed.
+	•	Undo unit groups consecutive inserts or deletes with a time threshold, like VS Code’s heuristic.
+
+Selections and cursors
+	•	Primary cursor plus zero or more secondary cursors.
+	•	Selection is a tuple (anchor, caret).
+	•	Normalise to line and column for rendering. Use wcwidth to account for wide glyphs.
+
+Line wrapping and viewport
+	•	Soft wrap implemented by visual rows computed from display width with wcwidth.
+	•	Scroll offsets track first visible visual row and the caret target column for vertical move.
+
+2) Rendering
+	•	Token stream from highlighter to Rich spans with colours and styles.
+	•	Gutter:
+	•	Absolute line numbers, with optional relative numbers.
+	•	Git change markers: added, modified, removed.
+	•	Diagnostics indicators per line.
+	•	Current line highlight drawn as a background style.
+	•	Matching bracket highlight computed with a simple stack or Tree-sitter if available.
+	•	Whitespace rendering option for tabs and trailing spaces.
+
+3) Keybindings
+
+Map VS Code where possible. Examples:
+
+Action	VS Code	Plan
+Command Palette	Ctrl+Shift+P	Yes
+Quick Open	Ctrl+P	Yes
+Toggle Sidebar	Ctrl+B	Yes
+Save	Ctrl+S	Yes
+Save All	Ctrl+K then S	Provide Ctrl+Alt+S alternative
+Close Tab	Ctrl+W	Yes
+Reopen Closed	Ctrl+Shift+T	Yes
+Comment line	Ctrl+/	Yes
+Block comment	Shift+Alt+A	Yes
+Go to line	Ctrl+G	Yes
+Go to definition	F12	Yes if LSP
+Peek definition	Alt+F12	Later
+Rename symbol	F2	Later
+Format document	Shift+Alt+F	Yes if formatter configured
+Multi-cursor add	Ctrl+Click	Yes
+Next occurrence	Ctrl+D	Yes
+Select all occurrences	Ctrl+Shift+L	Yes
+Move line up/down	Alt+Up/Down	Yes
+Duplicate line	Shift+Alt+Down	Yes
+Toggle wrap	Alt+Z	Yes
+
+Terminal constraints:
+	•	Some chords like Ctrl+K Ctrl+S are hard to read in raw terminals. Provide single stroke alternatives and allow remapping in settings.
+
+4) Mouse and context menus
+	•	Right click in editor:
+	•	Cut, copy, paste.
+	•	Command Palette.
+	•	Go to definition if symbol under cursor.
+	•	Peek references later.
+	•	Change selection mode, add cursor here.
+	•	Right click in tab strip:
+	•	Close, close others, close to right, reopen closed, copy path.
+	•	Right click in explorer:
+	•	New file, new folder, rename, delete, reveal in OS file manager.
+
+Menus implemented as Textual popovers, navigable with mouse and arrow keys.
+
+5) Command Palette
+	•	Registry driven. Each command has id, title, optional category, and a callable.
+	•	Fuzzy type filter with rapidfuzz.
+	•	Shows keybinding hints on the right if bound.
+	•	Supports argument prompts. Example: “Change Language Mode” opens a quick pick of languages.
+
+6) Quick Open
+	•	If ripgrep is installed, build an index using rg --files --hidden --ignore-file .gitignore.
+	•	Otherwise walk from workspace root with .gitignore aware filtering using pathspec.
+	•	Cache the file list, refresh on file events.
+	•	Fuzzy filter with rapidfuzz.
+
+7) Search and replace
+	•	In-file search bar with regex and case options.
+	•	Project search panel:
+	•	Prefer rg for speed, stream results as they arrive.
+	•	Fallback Python walker, yielding results with context lines.
+	•	Replace supports confirm each or replace all, with preview of count.
+
+8) LSP integration
+	•	Per language configuration example in settings:
+
+[lsp.python]
+command = "pylsp"
+args = []
+
+[lsp.typescript]
+command = "typescript-language-server"
+args = ["--stdio"]
+root_patterns = ["package.json", "tsconfig.json", ".git"]
+
+
+	•	Capabilities:
+	•	Diagnostics shown in Problems panel and gutter.
+	•	Completion on Ctrl+Space and after trigger characters, with documentation hover.
+	•	Hover on F1 or when holding Ctrl and hovering with mouse if possible.
+	•	Go to definition on F12.
+	•	Throttling:
+	•	Batch didChange events at 300 ms intervals.
+	•	Recovery:
+	•	If server crashes, show toast with restart option.
+
+9) File explorer
+	•	Lazy loads directories on expand.
+	•	Shows Git status badges.
+	•	Rename inline, create and delete with confirmation.
+	•	Drag and drop move within the explorer where terminals allow mouse drag. Otherwise use commands.
+
+10) Git integration
+	•	Status bar branch and dirty indicator.
+	•	Gutter markers from git diff --name-status and --numstat.
+	•	Commands:
+	•	Stage file, unstage file.
+	•	Commit with message prompt.
+	•	View diff for current file in a temporary split view later.
+
+11) Formatting and linting
+	•	Formatting:
+	•	Per language formatter command in settings, run on save if enabled.
+	•	Linting:
+	•	Prefer LSP diagnostics, otherwise allow external linter commands that write to stdout and parse known formats.
+
+12) Sessions
+	•	On exit, persist open files, cursor positions, and unsaved buffers to a session file in the workspace storage folder.
+	•	On launch, prompt to restore last session.
+
+13) Settings
+	•	Locations:
+	•	Global: ~/.config/<app>/settings.toml on Linux, %APPDATA%\<app>\settings.toml on Windows.
+	•	Workspace overrides in .vscode-like folder .editor/.
+	•	Schema outline:
+
+[ui]
+theme = "catppuccin-mocha"
+line_numbers = "on"    # on, relative, off
+cursor_style = "block" # block, bar, underline
+wrap = false
+
+[editor]
+tab_size = 4
+insert_spaces = true
+trim_trailing_whitespace_on_save = true
+render_whitespace = "selection" # none, selection, all
+rulers = [80, 120]
+
+[keys]
+# user overrides, maps "Ctrl+S" = "file.save"
+
+[git]
+enabled = true
+
+[search]
+use_ripgrep_if_available = true
+
+[lsp.<lang>]
+# as shown earlier
+
+
+
+14) Theming
+	•	Tokens:
+	•	foreground, background, selection, caret, line highlight, gutter fg/bg, syntax token colours for keyword, string, comment, number, function, type, variable, punctuation, operators, error, warning, info, hint.
+	•	Provide two themes:
+	•	Catppuccin Mocha inspired.
+	•	High contrast dark.
+
+15) International text
+	•	Use wcwidth for display width.
+	•	Support UTF-8 by default, detect others with charset-normalizer.
+	•	Treat combining characters as part of previous glyph for cursor movement.
+	•	Basic bidirectional text left to right only in v1. Document limitation.
+
+16) Cross platform considerations
+	•	Windows
+	•	Encourage Windows Terminal or the new console host. Legacy cmd has poor key reporting.
+	•	Use pywin32 clipboard path via pyperclip.
+	•	Paths use pathlib only.
+	•	Linux
+	•	Wayland selection requires wl-clipboard for best results.
+	•	Respect $XDG_* locations.
+	•	File watching uses watchdog’s platform backends.
+
+17) Dropbox workflow
+	•	Avoid writing lock files inside workspace by default.
+	•	Atomic save to temp then replace prevents partial sync.
+	•	Session files stored under OS app data, not inside the project, unless workspace settings opt-in.
+
+⸻
+
+Performance plan
+	•	Render only visible lines. Use a dirty rectangle approach to redraw rows that changed.
+	•	Debounce syntax highlight when typing quickly.
+	•	Precompute soft wrap breaks per line, invalidate on window width change.
+	•	Use memory-mapped files for initial load if large, then copy into original buffer of the piece table.
+	•	Batch LSP changes. Limit completion list size with pagination.
+
+⸻
+
+Error handling and recovery
+	•	Crash safe save. If write fails, keep an autosave copy in a recover folder with timestamp.
+	•	If LSP or ripgrep not found, show a toast and disable related features rather than crashing.
+	•	Clear messages in a log panel and a rotating status notification area.
+
+⸻
+
+Security and privacy
+	•	No telemetry by default.
+	•	Optional crash reports create a local JSON with stack and environment summary. User can choose to copy and paste into an issue.
+	•	Never execute workspace scripts automatically. All formatter or linter commands come from user settings and are shown before first run.
+
+⸻
+
+Testing strategy
+	•	Unit tests for piece table, undo stack, search, selection moves, encoding conversions.
+	•	Snapshot tests for rendering rows using Rich’s console capture.
+	•	TUI tests with Textual’s Pilot to simulate key and mouse events.
+	•	Integration tests for LSP with a mocked server and with real servers in CI on a small corpus.
+	•	Performance tests that open a 50 MB file and measure time to first paint under a budget.
+	•	Run on Linux and Windows in CI.
+
+⸻
+
+Tooling and CI
+	•	Python 3.11 or later.
+	•	ruff for linting and formatting.
+	•	pytest with coverage.
+	•	GitHub Actions workflow:
+	•	Lint, unit tests, integration tests on ubuntu-latest and windows-latest.
+	•	Build and upload wheels to TestPyPI on tags with rc suffix, to PyPI on release tags.
+
+⸻
+
+Documentation
+	•	README with quick start.
+	•	Docs site using MkDocs Material:
+	•	Getting Started
+	•	Keybindings
+	•	Settings reference
+	•	LSP setup per language
+	•	Theming guide with tokens
+	•	FAQ on terminals and key chords
+	•	Short demo GIFs recorded in a 24-bit colour terminal.
+
+⸻
+
+Licensing
+	•	MIT licence for the project.
+	•	Acknowledge inspirations from Neovim and VS Code. Do not copy their code or icons.
+
+⸻
+
+Future C rewrite path
+	•	Keep the Python editor as a clean reference implementation.
+	•	Isolate performance critical bits behind interfaces:
+	•	IBuffer, IHighlighter, ISearch.
+	•	Potentially build a C or Rust dynamic library that implements piece table and search, called from Python through cffi during the Python era.
+	•	Later, a native C TUI using notcurses or tui frameworks can reuse the algorithms.
+
+⸻
+
+Risks and mitigations
+	•	Terminal key limitations: some chords cannot be detected. Provide alternative single stroke bindings and configurable keymap.
+	•	Windows terminal quirks: document minimum Windows build, test on Windows Terminal and PowerShell.
+	•	Performance on huge files: enforce soft limits, warn on files bigger than a threshold, and offer read-only fast mode.
+	•	Tree-sitter complexity: ship Pygments first to deliver value, add Tree-sitter once the core is stable.
+	•	LSP variability: servers differ in behaviour. Start with Python, TypeScript, JSON, and Bash as supported languages, expand over time.
+
+⸻
+
+Milestone roadmap with acceptance criteria
+
+Milestone 0, Bootstrap, 1 to 2 weeks
+	•	Repo created with basic Textual app, empty editor view, command registry, keymap loader, and status bar.
+	•	Runs on Arch and Windows Terminal.
+	•	Accept criteria: Open app, see status bar, press Ctrl+Shift+P to open a placeholder Command Palette, quit cleanly.
+
+Milestone 1, File open and basic edit, 2 to 3 weeks
+	•	File open, save, save as, close tab.
+	•	Piece table buffer with undo and redo.
+	•	Line numbers, current line highlight, soft wrap toggle.
+	•	Mouse selection and basic context menu.
+	•	Accept criteria: Open a medium file, edit, undo, redo, save, reopen and see changes.
+
+Milestone 2, Search and Quick Open, 1 to 2 weeks
+	•	In-file find and replace.
+	•	Quick Open with ripgrep or fallback walker.
+	•	Accept criteria: Ctrl+P opens fuzzy quick open, Ctrl+F finds, Ctrl+H replaces with preview count.
+
+Milestone 3, Syntax highlight v1 and theming, 1 week
+	•	Pygments based highlighting with theme tokens.
+	•	Two themes shipped, user theme file honoured.
+	•	Accept criteria: Change theme in settings and see colours update live.
+
+Milestone 4, LSP minimal, 2 to 3 weeks
+	•	LSP client with diagnostics and completion for Python and TypeScript.
+	•	Hover and go to definition.
+	•	Accept criteria: Typing shows completion list, errors show in gutter and Problems panel, F12 jumps to definition.
+
+Milestone 5, Git basics, 1 week
+	•	Branch in status bar, dirty indicator, gutter marks.
+	•	Stage file and commit from Command Palette.
+	•	Accept criteria: Modify a file, see gutter marks and branch name, commit from inside the app.
+
+Milestone 6, Stability and Windows polish, 1 week
+	•	Clipboard reliability on Windows and Wayland.
+	•	Atomic save and autosave.
+	•	Watchdog prompts on external changes with diff view later.
+	•	Accept criteria: External file change prompt appears and offers reload, autosave recovers after simulated crash.
+
+Milestone 7, Quality pass and alpha release, 1 week
+	•	Docs for install and basic usage.
+	•	CI green on Linux and Windows.
+	•	Tagged alpha on PyPI, installable with pipx.
+
+Stretch milestones
+	•	Split panes with a simple grid manager.
+	•	Tree-sitter highlighter.
+	•	Rename symbol, code actions, and diagnostics panel filtering.
+	•	Macro recording and playback.
+	•	Plugin API v0 that lets Python modules register commands and keybindings.
+
+⸻
+
+Initial dependency list
+	•	textual, rich, wcwidth
+	•	pygments then tree_sitter, tree_sitter_languages
+	•	rapidfuzz
+	•	watchdog
+	•	charset-normalizer
+	•	pyperclip
+	•	pathspec
+	•	lsprotocol, jsonrpcserver or a lightweight JSON-RPC helper
+	•	pydantic for settings schema
+	•	Dev: pytest, pytest-asyncio, textual-pilot, ruff, mypy optional
+
+⸻
+
+First concrete tasks to start with
+	1.	Scaffold the repo and Textual app with a blank EditorView and status bar.
+	2.	Implement the piece table with unit tests for insert, delete, split lines, and undo.
+	3.	Wire cursor movement, selection, and rendering of a single buffer.
+	4.	Add file open and save with encoding and EOL detection.
+	5.	Add the Command Palette with a tiny command registry and two commands to prove the pattern.
