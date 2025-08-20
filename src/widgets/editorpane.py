@@ -1,5 +1,5 @@
-from textual.widgets import Static
+from textual.widgets import TextArea
 
-class Editorpane(Static):
+class Editorpane(TextArea):
     def __init__(self) -> None:
         super().__init__("placeholder editorpane", classes="editorpane")

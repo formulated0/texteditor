@@ -5,11 +5,16 @@ from .widgets import Sidebar, Editorpane, Tabbar, Statusbar
 
 
 class tedit(App):
-    BINDINGS = [("q", "quit", "quit")]
+    BINDINGS = [("ctrl-q", "quit", "quit")]
     CSS_PATH = "../style.tcss"
     
+    def __init__(self, folder):
+        super().__init__()
+        self.folder = folder
+        self.file = None
+    
     def compose(self) -> ComposeResult:
-        yield Sidebar()
+        yield Sidebar(self.folder)
         yield Container(
             Tabbar(),
             Editorpane(),
