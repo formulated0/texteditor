@@ -1,6 +1,7 @@
 from textual.widgets import DirectoryTree, TextArea
 from argparse import ArgumentParser
 from pathlib import Path
+from .language_map import get_language_from_extension
 
 class Sidebar(DirectoryTree):
 	def __init__(self, folder):
@@ -17,7 +18,7 @@ class Sidebar(DirectoryTree):
 
 		texteditor = self.app.query_one("#editorpane", TextArea)
 		texteditor.text = self.file.read_text()
-		texteditor.language = "python" if self.file.suffix == "py" else None
+		texteditor.language = get_language_from_extension(self.file.suffix)
 
 	def action_save_file(self, event=None):
 		if event is not None:
@@ -32,8 +33,8 @@ class Sidebar(DirectoryTree):
 		if self.file is None:
 				print("save failed because there was no file selected")
 				return
+		
 		texteditor = self.app.query_one("#editorpane", TextArea)
-
 		if texteditor is None:
 				print("save failed because the editorpane wasnt found for some reason")
 				return

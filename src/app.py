@@ -6,8 +6,9 @@ from .widgets import Sidebar, Editorpane, Tabbar, Statusbar
 
 class tedit(App):
     BINDINGS = [
-        ("ctrl-q", "quit", "quit"),
+        ("ctrl+q", "quit", "quit"),
         ("ctrl+s", "save_file"),
+        ("ctrl+shift+z", "redo"), # TODO: figure this out later
     ]
     
     CSS_PATH = "../style.tcss"
