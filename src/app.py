@@ -5,7 +5,11 @@ from .widgets import Sidebar, Editorpane, Tabbar, Statusbar
 
 
 class tedit(App):
-    BINDINGS = [("ctrl-q", "quit", "quit")]
+    BINDINGS = [
+        ("ctrl-q", "quit", "quit"),
+        ("ctrl+s", "save_file"),
+    ]
+    
     CSS_PATH = "../style.tcss"
     
     def __init__(self, folder):
@@ -22,4 +26,11 @@ class tedit(App):
         )
         yield Statusbar()
         # yield Footer() # conflicts with statusbar right now
+
+    def action_save_file(self) -> None:
+        sidebar = self.query_one(Sidebar)
+        if sidebar:
+            sidebar.action_save_file()
+        else:
+            print("error saving file i dont know why but there was an error")
 
