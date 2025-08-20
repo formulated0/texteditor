@@ -1,4 +1,4 @@
-from textual.widgets import DirectoryTree
+from textual.widgets import DirectoryTree, TextArea
 from argparse import ArgumentParser
 from pathlib import Path
 
@@ -8,15 +8,15 @@ class Sidebar(DirectoryTree):
         self.folder = folder
         self.file = None
     
-    def _on_director_tree_file_selected(self, event):
+    def _on_directory_tree_file_selected(self, event):
         path: Path = event.path
         if not path.is_file:
             return
 
         self.file = path
 
-        texteditor = self.query_one(".editorpane")
-
-        # i dont know why this doesnt work but nothing seems broken so leave it 
+        texteditor = self.app.query_one("#editorpane", TextArea)
+        
+        # i dont know why this doesnt work 
         texteditor.text = self.file.read_text()
         texteditor.language = "python" if self.file.suffix == "py" else None
