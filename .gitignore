@@ -1,3 +1,7 @@
+# Ignore user files
+text.txt
+IMG_6139.JPEG
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -179,7 +183,3 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
-
-# Ignore user files
-text.txt
-IMG_6139.JPEG
