@@ -1,5 +1,4 @@
 # tedit
 ## text editor 
 i hate vim ux so i made my own text editor  
-
-## run main.py
+## how to use: just run main.py buddy 
