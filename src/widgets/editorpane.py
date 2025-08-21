@@ -3,7 +3,7 @@ from textual import events
 
 class Editorpane(TextArea):	
 	def __init__(self) -> None:
-		super().__init__("", id="editorpane")
+		super().__init__("test", id="editorpane")
 		self.show_line_numbers = True
 		self.indent_type = "tabs"
 		self.tab_behavior = "indent"

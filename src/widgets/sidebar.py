@@ -9,11 +9,12 @@ class Sidebar(DirectoryTree):
 		self.folder = folder
 		self.file = None
 	
+
 	def _on_directory_tree_file_selected(self, event):
 		path: Path = event.path
 		if not path.is_file:
 			return
-
+		
 		self.file = path
 
 		texteditor = self.app.query_one("#editorpane", TextArea)

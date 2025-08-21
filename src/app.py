@@ -9,6 +9,8 @@ class tedit(App):
         ("ctrl+q", "quit", "quit"),
         ("ctrl+s", "save_file"),
         ("ctrl+shift+z", "redo"), # TODO: figure this out later
+        ("ctrl+t", "new_tab"),
+        ("ctrl+w", "close_tab")
     ]
     
     CSS_PATH = "../style.tcss"
