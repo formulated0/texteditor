@@ -17,7 +17,8 @@ class Sidebar(DirectoryTree):
 		self.file = path
 
 		texteditor = self.app.query_one("#editorpane", TextArea)
-		texteditor.text = self.file.read_text()
+		# Read file with UTF-8 encoding and replace errors to avoid UnicodeDecodeError
+		texteditor.text = self.file.read_text(encoding="utf-8", errors="replace")
 		texteditor.language = get_language_from_extension(self.file.suffix)
 
 	def action_save_file(self, event=None):
@@ -38,6 +39,6 @@ class Sidebar(DirectoryTree):
 		if texteditor is None:
 				print("save failed because the editorpane wasnt found for some reason")
 				return
-		
-		self.file.write_text(texteditor.text)
+		# Write file with UTF-8 encoding and replace errors to avoid UnicodeEncodeError
+		self.file.write_text(texteditor.text, encoding="utf-8", errors="replace")
 		print(f"saved file {self.file}")
