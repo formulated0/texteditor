@@ -180,6 +180,6 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Ignore user files
 text.txt
-
-IMG_6139.JPG
+IMG_6139.JPEG
